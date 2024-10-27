@@ -1,0 +1,13 @@
+{
+    "manifest_version": 3,
+    "name": "LinkedIn Extension",
+    "version": "1.0",
+    "description": "A Chrome extension for LinkedIn with a custom popup",
+    "permissions": ["activeTab"],
+    "content_scripts": [
+      {
+        "matches": ["*://*.linkedin.com/*", "*://*.reddit.com/*", "*://*.quora.com/*", "*://*.x.com/*"],
+        "js": ["content.js"]
+      }
+    ]
+  }
