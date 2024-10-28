@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+interface ButtonPosition {
+  x: number;
+  y: number;
+  button: HTMLElement;
+}
+
 export default function Extension() {
   const [isOpen, setIsOpen] = useState(false);
-  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const [buttonPosition, setButtonPosition] = useState<ButtonPosition | null>(null);
   const [site, setSite] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const togglePopup = (event: CustomEvent) => {
-      const buttonRect = (event.detail as DOMRect);
-      const newIsOpen = !isOpen;
-      setIsOpen(newIsOpen);
+      const newButtonPosition = event.detail as ButtonPosition;
       
-      if (newIsOpen) {
-        const top = buttonRect.bottom;
-        const left = site === 'LinkedIn' ? buttonRect.left : buttonRect.right;
-        setPopupPosition({ top, left });
+      if (buttonPosition && buttonPosition.button === newButtonPosition.button) {
+        // If clicking the same button, toggle the popup
+        setIsOpen(!isOpen);
+      } else {
+        // If clicking a different button, open the popup
+        setIsOpen(true);
+        setButtonPosition(newButtonPosition);
       }
     };
 
@@ -23,18 +30,34 @@ export default function Extension() {
       setSite(event.detail as string);
     };
 
+    const updatePopupPosition = () => {
+      if (isOpen && buttonPosition) {
+        const rect = buttonPosition.button.getBoundingClientRect();
+        setButtonPosition(prevState => ({
+          ...prevState!,
+          x: rect.left,
+          y: rect.top
+        }));
+      }
+    };
+
     document.addEventListener('toggleSocialScribePopup', togglePopup as EventListener);
     document.addEventListener('siteChanged', handleSiteChange as EventListener);
+    window.addEventListener('scroll', updatePopupPosition);
+    window.addEventListener('resize', updatePopupPosition);
 
     return () => {
       document.removeEventListener('toggleSocialScribePopup', togglePopup as EventListener);
       document.removeEventListener('siteChanged', handleSiteChange as EventListener);
+      window.removeEventListener('scroll', updatePopupPosition);
+      window.removeEventListener('resize', updatePopupPosition);
     };
-  }, [isOpen, site]);
+  }, [isOpen, buttonPosition]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node) && 
+          buttonPosition && !buttonPosition.button.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -43,18 +66,17 @@ export default function Extension() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [buttonPosition]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !buttonPosition) return null;
 
   return (
     <div
       ref={popupRef}
       style={{
         position: 'fixed',
-        top: `${popupPosition.top}px`,
-        left: `${popupPosition.left}px`,
-        transform: site === 'LinkedIn' ? 'translateX(-100%)' : 'none',
+        top: `${buttonPosition.y}px`,
+        left: `${buttonPosition.x}px`,
         width: '300px',
         backgroundColor: '#15202B',
         borderRadius: '8px',

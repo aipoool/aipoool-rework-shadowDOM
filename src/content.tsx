@@ -10,6 +10,7 @@ interface SiteConfig {
 
 let site: string | null = null;
 let siteConfig: SiteConfig | null = null;
+let currentButton: HTMLElement | null = null;
 
 const checkSiteAndNotify = () => {
   const url = window.location.href;
@@ -86,7 +87,10 @@ const insertButton = (parentForm: HTMLElement) => {
   button.addEventListener("click", (e: MouseEvent) => {
     e.stopPropagation();
     const rect = button.getBoundingClientRect();
-    document.dispatchEvent(new CustomEvent('toggleSocialScribePopup', { detail: rect }));
+    currentButton = button;
+    document.dispatchEvent(new CustomEvent('toggleSocialScribePopup', { 
+      detail: { x: rect.left, y: rect.top, button: button }
+    }));
   });
 
   buttonContainer.appendChild(button);
@@ -156,6 +160,7 @@ const findRedditTargetDiv = (parentForm: HTMLElement): HTMLElement | null => {
   }
   return null;
 };
+
 const injectExtension = () => {
   const extensionRoot = document.createElement('div');
   extensionRoot.id = 'linkedin-extension-root';
