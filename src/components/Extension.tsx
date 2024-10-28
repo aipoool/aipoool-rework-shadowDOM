@@ -10,7 +10,19 @@ export default function Extension() {
   const [isOpen, setIsOpen] = useState(false);
   const [buttonPosition, setButtonPosition] = useState<ButtonPosition | null>(null);
   const [site, setSite] = useState<string | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
+
+  const updatePopupPosition = () => {
+    if (buttonPosition) {
+      const rect = buttonPosition.button.getBoundingClientRect();
+      setButtonPosition(prevState => ({
+        ...prevState!,
+        x: rect.left,
+        y: rect.top
+      }));
+    }
+  };
 
   useEffect(() => {
     const togglePopup = (event: CustomEvent) => {
@@ -22,23 +34,19 @@ export default function Extension() {
       } else {
         // If clicking a different button, open the popup
         setIsOpen(true);
-        setButtonPosition(newButtonPosition);
       }
+      
+      // Always update the button position
+      const rect = newButtonPosition.button.getBoundingClientRect();
+      setButtonPosition({
+        x: rect.left,
+        y: rect.top,
+        button: newButtonPosition.button
+      });
     };
 
     const handleSiteChange = (event: CustomEvent) => {
       setSite(event.detail as string);
-    };
-
-    const updatePopupPosition = () => {
-      if (isOpen && buttonPosition) {
-        const rect = buttonPosition.button.getBoundingClientRect();
-        setButtonPosition(prevState => ({
-          ...prevState!,
-          x: rect.left,
-          y: rect.top
-        }));
-      }
     };
 
     document.addEventListener('toggleSocialScribePopup', togglePopup as EventListener);
@@ -68,7 +76,15 @@ export default function Extension() {
     };
   }, [buttonPosition]);
 
-  if (!isOpen || !buttonPosition) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 300); // Match this with the transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!buttonPosition) return null;
 
   return (
     <div
@@ -84,6 +100,11 @@ export default function Extension() {
         color: 'white',
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         zIndex: 2147483647,
+        opacity: isOpen ? 1 : 0,
+        transform: isOpen ? 'scale(1)' : 'scale(0.95)',
+        transformOrigin: 'top left',
+        transition: 'opacity 0.3s ease, transform 0.3s ease',
+        pointerEvents: isOpen || isAnimating ? 'auto' : 'none',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -97,7 +118,10 @@ export default function Extension() {
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
+              transition: 'background-color 0.2s ease',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#22303C'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#192734'}
           >
             {tab}
           </button>
@@ -117,7 +141,10 @@ export default function Extension() {
                 borderRadius: '12px',
                 fontSize: '12px',
                 cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2C3E50'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#22303C'}
             >
               {type}
             </button>
@@ -126,11 +153,11 @@ export default function Extension() {
       </div>
       <div style={{ marginBottom: '16px' }}>
         <h3 style={{ marginBottom: '8px', fontSize: '16px' }}>Reply to</h3>
-        <a href="#" style={{ color: '#1DA1F2', textDecoration: 'none' }}>View Post</a>
+        <a href="#" style={{ color: '#1DA1F2', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = '#0F8FE8'} onMouseLeave={(e) => e.currentTarget.style.color = '#1DA1F2'}>View Post</a>
       </div>
       <div style={{ marginBottom: '16px' }}>
         <h3 style={{ marginBottom: '8px', fontSize: '16px' }}>Templated messages</h3>
-        <select style={{ width: '100%', padding: '8px', backgroundColor: '#22303C', color: 'white', border: 'none', borderRadius: '4px' }}>
+        <select style={{ width: '100%', padding: '8px', backgroundColor: '#22303C', color: 'white', border: 'none', borderRadius: '4px', transition: 'background-color 0.2s ease' }} onChange={(e) => e.currentTarget.style.backgroundColor = '#2C3E50'} onBlur={(e) => e.currentTarget.style.backgroundColor = '#22303C'}>
           <option>Select Template</option>
         </select>
       </div>
@@ -144,7 +171,10 @@ export default function Extension() {
           borderRadius: '4px',
           cursor: 'pointer',
           fontSize: '14px',
+          transition: 'background-color 0.2s ease',
         }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0F8FE8'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1DA1F2'}
       >
         Generate Response
       </button>
